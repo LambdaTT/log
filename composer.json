@@ -1,0 +1,21 @@
+{
+  "name": "lambdatt-php/log",
+  "description": "A SplitPHP Framework plugin to capture, organize and view the framework's logs.",
+  "type": "splitphp-module",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "SplitPHP\\": "./"
+    }
+  },
+  "extra": {
+    "installer-name": "."
+  },
+  "authors": [
+    {
+      "name": "Gabriel Valentoni Guelfi",
+      "email": "gabriel.valguelfi@gmail.com"
+    }
+  ],
+  "require": {}
+}

@@ -1,0 +1,27 @@
+name: Update Packagist on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  packagist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Packagist and fail on error
+        run: |
+          # executa a chamada e captura a resposta
+          response=$(curl -s -X POST \
+            "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"repository\":{\"url\":\"https://github.com/${{ github.repository }}\"}}")
+          
+          echo "Packagist response: $response"
+          
+          # verifica se status == "success"
+          if echo "$response" | grep -q '"status":"success"'; then
+            echo "✅ Packagist update scheduled."
+          else
+            echo "❌ Packagist update failed!"
+            exit 1
+          fi
