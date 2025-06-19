@@ -7,37 +7,32 @@ on:
 jobs:
   packagist:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Setup response variable
-        id: pack
+      - name: Sync to Packagist (update or create)
         run: |
-          curl -s -X POST \
+          set -e
+
+          echo "🔄 Tentando atualizar o pacote no Packagist…"
+          update_response=$(curl -s -X POST \
             "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"repository":{"url":"https://github.com/${{ github.repository }}"}}' \
-          || true  # não falha o job ainda
-
-      - name: Check if update succeeded
-        id: check
-        run: |
-          echo "${{ steps.pack.outputs.response }}" | grep -q '"status":"success"' && echo "updated" || echo "not_found"
-        shell: bash
-
-      - name: Create package if missing
-        if: steps.check.outputs.result == 'not_found'
-        run: |
-          echo "Package not found on Packagist, creating..."
-          curl -s -X POST \
-            "https://packagist.org/api/create-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "repository": {
-                "url": "https://github.com/${{ github.repository }}",
-                "type": "vcs"
-              }
-            }' \
-          | tee /dev/stderr \
-          | grep -q '"status":"success"' || { echo "❌ create-package failed"; exit 1; }
-
-      - name: Confirm Packagist sync
-        run: echo "✅ Packagist is now in sync."
+            -d "{\"repository\":{\"url\":\"https://github.com/${{ github.repository }}\"}}")
+          echo "Resposta do update: $update_response"
+          
+          # Se não vier "status":"success", partimos para o create
+          if [[ $update_response != *'"status":"success"'* ]]; then
+            echo "⚠️ Update falhou ou pacote não existe. Criando o pacote agora…"
+            create_response=$(curl -s -X POST \
+              "https://packagist.org/api/create-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"repository\":{\"url\":\"https://github.com/${{ github.repository }}\",\"type\":\"vcs\"}}")
+            echo "Resposta do create: $create_response"
+            if [[ $create_response != *'"status":"success"'* ]]; then
+              echo "❌ Falha ao criar o pacote no Packagist!"
+              exit 1
+            fi
+            echo "✅ Pacote criado com sucesso no Packagist."
+          else
+            echo "✅ Pacote existente atualizado com sucesso."
+          fi
