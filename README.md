@@ -12,6 +12,12 @@ Install via Composer:
 composer require lambdatt-php/log
 ```
 
+Run the Migrations:
+```bash
+php console migrations:apply --module=log
+```
+**PS: this can only be installed on a SplitPHP Framework project. For more information refer to: https://github.com/splitphp/core**
+
 ## Usage
 
 Once installed, simply navigate to your application's log route:
