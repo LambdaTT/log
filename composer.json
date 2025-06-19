@@ -8,9 +8,6 @@
       "SplitPHP\\": "./"
     }
   },
-  "extra": {
-    "installer-name": "."
-  },
   "authors": [
     {
       "name": "Gabriel Valentoni Guelfi",
