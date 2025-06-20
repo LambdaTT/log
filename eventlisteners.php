@@ -1,5 +1,5 @@
 <?php
-namespace Modules\Log;
+namespace Log\EventListeners;
 
 use SplitPHP\EventListener;
 

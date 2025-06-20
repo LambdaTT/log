@@ -1,8 +1,8 @@
 <?php
 
-namespace application\routes;
+namespace Log\Routes;
 
-use \engine\WebService;
+use SplitPHP\WebService;
 
 class Log extends WebService
 {

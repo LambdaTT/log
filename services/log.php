@@ -1,11 +1,10 @@
 <?php
 
-namespace application\services;
+namespace Log\Services;
 
-use \engine\Service;
-use \engine\Utils;
+use SplitPHP\Service;
 
-class Log_service extends Service
+class LogService extends Service
 {
   public function dbErrorLog($reverse = true)
   {
