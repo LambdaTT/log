@@ -9,7 +9,7 @@ class CreateTableLogrecord extends Migration
 {
   public function apply()
   {
-    $this->Table('LOG_RECORD')
+    $this->Table('LOG_RECORD', 'Log Record')
       ->id('id_log_record')
       ->string('ds_key', 17)
       ->datetime('dt_created')->setDefaultValue(DbVocab::SQL_CURTIMESTAMP())
