@@ -6,149 +6,64 @@ use SplitPHP\Service;
 
 class LogService extends Service
 {
-  public function dbErrorLog($reverse = true)
+  public function list(array $params = [])
   {
-    $data = [];
+    $params['$sort_by'] = 3; // dt_log
+    $params['$sort_direction'] = 'DESC';
 
-    if (file_exists(ROOT_PATH . '/application/log/db_error.log')) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . '/application/log/db_error.log'));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
+    $begginingOfDay = date('Y-m-d') . ' 00:00:00';
+    $endOfDay = date('Y-m-d') . ' 23:59:59';
 
-    if ($reverse) $data = array_reverse($data);
+    $params['dt_log'] = $params['dt_log'] ?? '$btwn|' . "{$begginingOfDay}|{$endOfDay}";
 
-    return array_values(array_filter($data));
-  }
-
-  public function customErrorLog($logName, $reverse = true)
-  {
-    $data = [];
-
-    if (file_exists(ROOT_PATH . "/application/log/{$logName}.log")) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . "/application/log/{$logName}.log"));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        if (is_object(json_decode($logEntry)))
-          $data[] = json_decode($logEntry);
-        else $data[] = $logEntry;
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
-  }
-
-  public function applicationErrorLog($reverse = true)
-  {
-    $data = [];
-
-    if (file_exists(ROOT_PATH . '/application/log/application_error.log')) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . '/application/log/application_error.log'));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
-  }
-
-  public function securityLog($reverse = true)
-  {
-    $data = [];
-
-    if (file_exists(ROOT_PATH . '/application/log/security.log')) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . '/application/log/security.log'));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
-  }
-
-  public function systemErrorLog($reverse = true)
-  {
-    $data = [];
-
-    if (file_exists(ROOT_PATH . '/application/log/sys_error.log')) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . '/application/log/sys_error.log'));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
-  }
-
-  public function curlLog($reverse = true)
-  {
-    $data = [];
-
-    if (file_exists(ROOT_PATH . '/application/log/curl.log')) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents(ROOT_PATH . '/application/log/curl.log'));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
-  }
-
-  public function eventErrorLog($reverse = true)
-  {
-    $data = [];
-    $path = ROOT_PATH . '/application/log/event_error.log';
-
-    if (file_exists($path)) {
-      $rawLogData = explode(str_repeat(PHP_EOL, 2), file_get_contents($path));
-      foreach ($rawLogData as $logEntry) {
-        $logEntry = preg_replace('/\[.*\] - /', '', $logEntry);
-        $data[] = json_decode($logEntry);
-      }
-    }
-
-    if ($reverse) $data = array_reverse($data);
-
-    return array_values(array_filter($data));
+    return $this->getDao('LOG_RECORD')
+      ->bindParams($params)
+      ->fetch(function (&$record) {
+        $record->tx_message = json_decode($record->tx_message) ?? $record->tx_message;
+      });
   }
 
   public function serverErrorLog($reverse = true)
   {
-    $path = ROOT_PATH . '/application/log/server.log';
+    $path = ROOT_PATH . '/log/server.log';
     $data = [];
 
     if (file_exists($path)) {
-      $rawData = explode(PHP_EOL, file_get_contents($path));
+      $pattern = '/^\[\d{1,2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2} UTC\].*?(?=^\[\d{1,2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2} UTC\]|\z)/ms';
+      preg_match_all($pattern, file_get_contents($path), $matches);
+      $rawData = $matches[0] ?? [];
       foreach ($rawData as $entry) {
-        $parsingData = [];
-        preg_match('/\[(.*)\] (.*)/', $entry, $parsingData);
+        $dates = [];
+        preg_match('/\[(.*)\]/', $entry, $dates);
 
-        if (!empty($parsingData))
+        if (!empty($dates[0])) {
+          $entry = preg_replace('/\[(.*)\]/', '', $entry);
+          $entry = trim($entry);
           $data[] = [
-            "datetime" => date('Y-m-d H:i:s', strtotime($parsingData[1])),
-            "message" => $parsingData[2]
+            "datetime" => date('Y-m-d H:i:s', strtotime($dates[1])),
+            "message" => $entry
           ];
+        }
       }
     }
 
     if ($reverse) $data = array_reverse($data);
 
     return array_values(array_filter($data));
+  }
+
+  public function checkAuthHeader()
+  {
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+    if (!$authHeader) {
+      return false;
+    }
+
+    // Validate the token (this is just a placeholder, implement your own logic)
+    $token = str_replace('Bearer ', '', $authHeader);
+    if ($token != hash('sha256', PUBLIC_KEY))
+      return false;
+
+    return true;
   }
 }
