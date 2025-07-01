@@ -9,49 +9,52 @@ use Exception;
 
 class Listeners extends EventListener
 {
+  private array $evtIds = [];
+
   public function init()
   {
-    $this->addEventListener('log.any', function ($event) {
-      try {
-        if (!Dbmetadata::tableExists('LOG_RECORD')) {
-          // If the table does not exist, we cannot log
-          return;
-        }
-        // Handle the log event
-        $this->getDao('LOG_RECORD')
-          ->insert([
-            'ds_key' => 'log-' . uniqid(),
-            'dt_log' => $event->getDatetime(),
-            'ds_context' => $event->getLogName(),
-            'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
-            'ds_filepath' => $event->getLogFilePath()
-          ]);
+    require_once CORE_PATH . '/database/' . DBTYPE . '/class.dbmetadata.php';
 
-        Dao::flush();
-      } catch (Exception $e) {
+    $this->evtIds['log.any'] = $this->addEventListener('log.any', function ($event) {
+      if (!Dbmetadata::tableExists('LOG_RECORD')) {
+        // If the table does not exist, we cannot log
+        $this->removeEventListener($this->evtIds['log.any']);
+        $this->removeEventListener($this->evtIds['log.error']);
+        throw new Exception("The LOG_RECORD table does not exist. Please run Log module's migration.");
       }
+
+      // Handle the log event
+      $this->getDao('LOG_RECORD')
+        ->insert([
+          'ds_key' => 'log-' . uniqid(),
+          'dt_log' => $event->getDatetime(),
+          'ds_context' => $event->getLogName(),
+          'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
+          'ds_filepath' => $event->getLogFilePath()
+        ]);
+
+      Dao::flush();
     });
 
-    $this->addEventListener('log.error', function ($event) {
-      try {
-        if (!Dbmetadata::tableExists('LOG_RECORD')) {
-          // If the table does not exist, we cannot log
-          return;
-        }
-        // Handle the log event
-        $this->getDao('LOG_RECORD')
-          ->insert([
-            'ds_key' => 'log-' . uniqid(),
-            'dt_log' => $event->getDatetime(),
-            'ds_context' => $event->getLogName(),
-            'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
-            'ds_filepath' => $event->getLogFilePath()
-          ]);
-
-        Dao::flush();
-      } catch (Exception $e) {
-        // Handle any exceptions that may occur during logging
+    $this->evtIds['log.error'] = $this->addEventListener('log.error', function ($event) {
+      if (!Dbmetadata::tableExists('LOG_RECORD')) {
+        // If the table does not exist, we cannot log
+        $this->removeEventListener($this->evtIds['log.error']);
+        $this->removeEventListener($this->evtIds['log.any']);
+        throw new Exception("The LOG_RECORD table does not exist. Please run Log module's migration.");
       }
+
+      // Handle the log event
+      $this->getDao('LOG_RECORD')
+        ->insert([
+          'ds_key' => 'log-' . uniqid(),
+          'dt_log' => $event->getDatetime(),
+          'ds_context' => $event->getLogName(),
+          'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
+          'ds_filepath' => $event->getLogFilePath()
+        ]);
+
+      Dao::flush();
     });
   }
 }
