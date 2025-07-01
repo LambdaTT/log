@@ -12,12 +12,11 @@ class Listeners extends EventListener
   public function init()
   {
     $this->addEventListener('log.any', function ($event) {
-      if (!Dbmetadata::tableExists('LOG_RECORD')) {
-        // If the table does not exist, we cannot log
-        return;
-      }
-
       try {
+        if (!Dbmetadata::tableExists('LOG_RECORD')) {
+          // If the table does not exist, we cannot log
+          return;
+        }
         // Handle the log event
         $this->getDao('LOG_RECORD')
           ->insert([
@@ -34,12 +33,11 @@ class Listeners extends EventListener
     });
 
     $this->addEventListener('log.error', function ($event) {
-      if (!Dbmetadata::tableExists('LOG_RECORD')) {
-        // If the table does not exist, we cannot log
-        return;
-      }
-
       try {
+        if (!Dbmetadata::tableExists('LOG_RECORD')) {
+          // If the table does not exist, we cannot log
+          return;
+        }
         // Handle the log event
         $this->getDao('LOG_RECORD')
           ->insert([
