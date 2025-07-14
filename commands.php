@@ -6,7 +6,7 @@ use SplitPHP\Cli;
 
 class Commands extends Cli
 {
-  public function init()
+  public function init(): void
   {
     $this->addCommand('server', function () {
       $data = $this->getService('log/log')->serverErrorLog();

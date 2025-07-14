@@ -2,7 +2,7 @@
 
 namespace Log\Migrations;
 
-use SplitPHP\DbMigrations\Migration;
+use SplitPHP\DbManager\Migration;
 use SplitPHP\Database\DbVocab;
 
 class CreateTableLogrecord extends Migration
