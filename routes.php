@@ -6,7 +6,7 @@ use SplitPHP\WebService;
 
 class Log extends WebService
 {
-  public function init()
+  public function init(): void
   {
     $this->setAntiXsrfValidation(false);
     define('LOG_REQUIRE_AUTHENTICATION', getenv('LOG_REQUIRE_AUTHENTICATION') === 'on');
