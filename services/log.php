@@ -3,6 +3,7 @@
 namespace Log\Services;
 
 use SplitPHP\Service;
+use SplitPHP\Utils;
 
 class LogService extends Service
 {
@@ -61,7 +62,8 @@ class LogService extends Service
 
     // Validate the token (this is just a placeholder, implement your own logic)
     $token = str_replace('Bearer ', '', $authHeader);
-    if ($token != hash('sha256', PUBLIC_KEY))
+    $decrypted = Utils::dataDecrypt($token, PRIVATE_KEY);
+    if ($decrypted != hash('sha256', PUBLIC_KEY))
       return false;
 
     return true;
