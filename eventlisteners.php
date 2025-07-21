@@ -6,8 +6,8 @@ use SplitPHP\Database\Dao;
 use SplitPHP\Database\Database;
 use SplitPHP\EventListener;
 use SplitPHP\Helpers;
-use SplitPHP\Database\Dbmetadata;
-use Exception;
+use SplitPHP\System;
+use Throwable;
 
 class Listeners extends EventListener
 {
@@ -18,64 +18,93 @@ class Listeners extends EventListener
     require_once CORE_PATH . '/database/' . Database::getRdbmsName() . '/class.dbmetadata.php';
 
     $this->evtIds['log.common'] = $this->addEventListener('log.common', function ($event) {
-      if (!Dbmetadata::tableExists('LOG_RECORD')) {
-        // If the table does not exist, we cannot log
-        $this->removeEventListener($this->evtIds['log.common']);
+      try {
+        // Handle the log event
+        $this->getDao('LOG_RECORD')
+          ->insert([
+            'ds_key' => 'log-' . uniqid(),
+            'dt_log' => $event->getDatetime(),
+            'ds_context' => $event->getLogName(),
+            'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
+            'ds_filepath' => $event->getLogFilePath()
+          ]);
 
-        $exc = new Exception("The LOG_RECORD table does not exist. Please run Log module's migration.");
-        echo PHP_EOL;
-        echo "\033[31mERROR[Event:log.common->Exception]: " . $exc->getMessage() . ". In file '" . $exc->getFile() . "', line " . $exc->getLine() . ".\033[0m";
-        echo PHP_EOL;
+        Dao::flush();
+      } catch (Throwable $exc) {
+        if (System::$bootType == 'cli') {
+          echo PHP_EOL;
+          echo "\033[31mERROR[Event:log.common->Exception]: " . $exc->getMessage() . ". In file '" . $exc->getFile() . "', line " . $exc->getLine() . ".\033[0m";
+          echo PHP_EOL;
+        } elseif (System::$bootType == 'web') {
+          $this->respondException($exc);
+        }
 
         Helpers::Log()->add('general_error', Helpers::Log()->exceptionBuildLog($exc, [
           'eventName' => $event->getName(),
           'eventInfo' => $event->info()
         ]));
-        return;
       }
-
-      // Handle the log event
-      $this->getDao('LOG_RECORD')
-        ->insert([
-          'ds_key' => 'log-' . uniqid(),
-          'dt_log' => $event->getDatetime(),
-          'ds_context' => $event->getLogName(),
-          'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
-          'ds_filepath' => $event->getLogFilePath()
-        ]);
-
-      Dao::flush();
     });
 
     $this->evtIds['log.error'] = $this->addEventListener('log.error', function ($event) {
-      if (!Dbmetadata::tableExists('LOG_RECORD')) {
-        // If the table does not exist, we cannot log
-        $this->removeEventListener($this->evtIds['log.error']);
+      try {
+        // Handle the log event
+        $this->getDao('LOG_RECORD')
+          ->insert([
+            'ds_key' => 'log-' . uniqid(),
+            'dt_log' => $event->getDatetime(),
+            'ds_context' => $event->getLogName(),
+            'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
+            'ds_filepath' => $event->getLogFilePath()
+          ]);
 
-        $exc = new Exception("The LOG_RECORD table does not exist. Please run Log module's migration.");
-        echo PHP_EOL;
-        echo "\033[31mERROR[Event:log.error->Exception]: " . $exc->getMessage() . ". In file '" . $exc->getFile() . "', line " . $exc->getLine() . ".\033[0m";
-        echo PHP_EOL;
+        Dao::flush();
+      } catch (Throwable $exc) {
+        if (System::$bootType == 'cli') {
+          echo PHP_EOL;
+          echo "\033[31mERROR[Event:log.error->Exception]: " . $exc->getMessage() . ". In file '" . $exc->getFile() . "', line " . $exc->getLine() . ".\033[0m";
+          echo PHP_EOL;
+        } elseif (System::$bootType == 'web') {
+          $this->respondException($exc);
+        }
 
         Helpers::Log()->add('general_error', Helpers::Log()->exceptionBuildLog($exc, [
           'eventName' => $event->getName(),
           'eventInfo' => $event->info()
         ]));
-
-        return;
       }
-
-      // Handle the log event
-      $this->getDao('LOG_RECORD')
-        ->insert([
-          'ds_key' => 'log-' . uniqid(),
-          'dt_log' => $event->getDatetime(),
-          'ds_context' => $event->getLogName(),
-          'tx_message' => json_encode($event->getLogMsg()) ?? $event->getLogMsg(),
-          'ds_filepath' => $event->getLogFilePath()
-        ]);
-
-      Dao::flush();
     });
+  }
+
+  /**
+   * Responds to the exception with a JSON response.
+   *
+   * This method sets the HTTP response code and returns a JSON response with the exception details.
+   * It includes information about the request, method, URL, parameters, and body.
+   *
+   * @param Throwable $exception The exception to respond to.
+   * @return void
+   */
+  private static function respondException(Throwable $exception): void
+  {
+    $request = System::$request;
+    $status = 500;
+    $responseData = [
+      "error" => true,
+      "accessible" => false,
+      "message" => $exception->getMessage(),
+      "request" => $request->__toString(),
+      "method" => $request->getVerb(),
+      "url" => $request->getRoute()->url,
+      "params" => $request->getRoute()->params,
+      "body" => $request->getBody()
+    ];
+
+    http_response_code($status);
+
+    if (!empty($responseData)) {
+      header('Content-Type: application/json');
+      echo json_encode($responseData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
   }
 }
