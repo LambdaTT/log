@@ -3,6 +3,7 @@
 namespace Log\Routes;
 
 use SplitPHP\WebService;
+use SplitPHP\Request;
 
 class Log extends WebService
 {
@@ -12,7 +13,7 @@ class Log extends WebService
     define('LOG_REQUIRE_AUTHENTICATION', getenv('LOG_REQUIRE_AUTHENTICATION') === 'on');
 
     // PHPINFO ENDPOINT:
-    $this->addEndpoint('GET', '/phpinfo', function () {
+    $this->addEndpoint('GET', '/php-info', function () {
       // Authenticate Auth Header:
       if (LOG_REQUIRE_AUTHENTICATION)
         if (!$this->getService('log/log')->checkAuthHeader())
@@ -32,14 +33,13 @@ class Log extends WebService
     });
 
     // LOG RECORDS ENDPOINT:
-    $this->addEndpoint('GET', '/?ds_context?', function ($params) {
+    $this->addEndpoint('GET', '/?ds_context?', function (Request $request) {
       // Authenticate Auth Header:
       if (LOG_REQUIRE_AUTHENTICATION)
         if (!$this->getService('log/log')->checkAuthHeader())
           return $this->response->withStatus(403);
 
-      if (empty($params['ds_context']))
-        unset($params['ds_context']);
+      $params = $request->getRoute()->params;
 
       $records = $this->getService('log/log')->list($params);
 

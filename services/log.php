@@ -17,11 +17,26 @@ class LogService extends Service
 
     $params['dt_log'] = $params['dt_log'] ?? '$btwn|' . "{$begginingOfDay}|{$endOfDay}";
 
-    return $this->getDao('LOG_RECORD')
+    $result = [];
+    if (!isset($params['ds_context'])) {
+      unset($params['ds_context']);
+      $result = [
+        'server' => $this->serverErrorLog(),
+      ];
+    }
+
+    $this->getDao('LOG_RECORD')
       ->bindParams($params)
-      ->fetch(function (&$record) {
+      ->fetch(function (&$record) use (&$result) {
         $record->tx_message = json_decode($record->tx_message) ?? $record->tx_message;
+        if (!array_key_exists($record->ds_context, $result)) {
+          $result[$record->ds_context] = [];
+        }
+
+        $result[$record->ds_context][]  = $record;
       });
+
+    return $result;
   }
 
   public function serverErrorLog($reverse = true)
