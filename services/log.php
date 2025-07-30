@@ -83,4 +83,10 @@ class LogService extends Service
 
     return true;
   }
+
+  public function clear()
+  {
+    $this->getDao('LOG_RECORD')
+      ->delete();
+  }
 }

@@ -39,6 +39,11 @@ class Listeners extends EventListener
           $this->respondException($exc);
         }
 
+        // Remove the event listener if an error occurs
+        // This is to prevent the same error from being logged repeatedly
+        // and to ensure that the system can continue functioning.
+        $this->removeEventListener($this->evtIds['log.common']);
+
         Helpers::Log()->add('general_error', Helpers::Log()->exceptionBuildLog($exc, [
           'eventName' => $event->getName(),
           'eventInfo' => $event->info()
@@ -68,6 +73,11 @@ class Listeners extends EventListener
           $this->respondException($exc);
         }
 
+        // Remove the event listener if an error occurs
+        // This is to prevent the same error from being logged repeatedly
+        // and to ensure that the system can continue functioning.
+        $this->removeEventListener($this->evtIds['log.error']);
+
         Helpers::Log()->add('general_error', Helpers::Log()->exceptionBuildLog($exc, [
           'eventName' => $event->getName(),
           'eventInfo' => $event->info()
@@ -87,18 +97,28 @@ class Listeners extends EventListener
    */
   private static function respondException(Throwable $exception): void
   {
-    $request = System::$request;
+    $request = System::$currentRequest;
     $status = 500;
     $responseData = [
       "error" => true,
       "accessible" => false,
       "message" => $exception->getMessage(),
-      "request" => $request->__toString(),
-      "method" => $request->getVerb(),
-      "url" => $request->getRoute()->url,
-      "params" => $request->getRoute()->params,
-      "body" => $request->getBody()
+      "file" => $exception->getFile(),
+      "line" => $exception->getLine(),
     ];
+
+    if (!empty($request)) {
+      $responseData = [
+        ...$responseData,
+        ...[
+          "request" => $request->__toString(),
+          "method" => $request->getVerb(),
+          "url" => $request->getRoute()->url,
+          "params" => $request->getRoute()->params,
+          "body" => $request->getBody()
+        ]
+      ];
+    }
 
     http_response_code($status);
 
