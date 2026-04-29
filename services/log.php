@@ -11,6 +11,9 @@ class LogService extends Service
   {
     $params['$sort_by'] = 3; // dt_log
     $params['$sort_direction'] = 'DESC';
+    $params['$page'] = $params['$page'] ?? 1;
+    $params['$limit'] = 100;
+    $params['$limit_multiplier'] = $params['$limit_multiplier'] ?? 1;
 
     $begginingOfDay = date('Y-m-d') . ' 00:00:00';
     $endOfDay = date('Y-m-d') . ' 23:59:59';
