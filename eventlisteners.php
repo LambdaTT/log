@@ -4,6 +4,7 @@ namespace Log\EventListeners;
 
 use SplitPHP\Database\Dao;
 use SplitPHP\Database\Database;
+use SplitPHP\Database\Dbmetadata;
 use SplitPHP\EventListener;
 use SplitPHP\Helpers;
 use SplitPHP\System;
@@ -20,6 +21,12 @@ class Listeners extends EventListener
     require_once CORE_PATH . '/database/' . Database::getRdbmsName() . '/class.dbmetadata.php';
 
     $this->evtIds['log.common'] = $this->addEventListener('log.common', function ($event) {
+      // LOG_RECORD only exists on tenant-scoped databases (migrated per-tenant). Requests that
+      // never resolve a tenant (e.g. public pre-tenant endpoints) run against a database that
+      // was never migrated with it, so there's nowhere to log to — skip gracefully instead of
+      // failing the whole request over a missing log table:
+      if (!Dbmetadata::tableExists('LOG_RECORD')) return;
+
       try {
         // Handle the log event
         $this->getDao('LOG_RECORD')
@@ -54,6 +61,8 @@ class Listeners extends EventListener
     });
 
     $this->evtIds['log.error'] = $this->addEventListener('log.error', function ($event) {
+      if (!Dbmetadata::tableExists('LOG_RECORD')) return;
+
       try {
         // Handle the log event
         $this->getDao('LOG_RECORD')

@@ -35,5 +35,10 @@ class Commands extends Cli
         Utils::printLn(">> Operation cancelled.");
       }
     });
+    
+    $this->addCommand('generate-token', function () {
+      $token = Utils::dataEncrypt(hash('sha256', APP_SECRET), APP_SECRET);
+      Utils::printLn("Generated Token: " . $token);
+    });
   }
 }

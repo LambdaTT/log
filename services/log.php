@@ -80,8 +80,8 @@ class LogService extends Service
 
     // Validate the token (this is just a placeholder, implement your own logic)
     $token = str_replace('Bearer ', '', $authHeader);
-    $decrypted = Utils::dataDecrypt($token, PRIVATE_KEY);
-    if ($decrypted != hash('sha256', PUBLIC_KEY))
+    $decrypted = Utils::dataDecrypt($token, APP_SECRET);
+    if ($decrypted != hash('sha256', APP_SECRET))
       return false;
 
     return true;
